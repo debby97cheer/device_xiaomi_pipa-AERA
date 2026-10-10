@@ -8,10 +8,15 @@
 
 DEVICE_PATH := device/xiaomi/pipa
 
-# For building with minimal manifest
+# -------------------- 现代 AOSP 构建兼容性与容错 --------------------
 ALLOW_MISSING_DEPENDENCIES := true
+BUILD_BROKEN_DUP_RULES := true
+BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES := true
+BUILD_BROKEN_MISSING_BUILD_ENV_VAR := true
+BUILD_BROKEN_VENDOR_PROPERTY_NAMESPACE := true
+BUILD_BROKEN_VINTF_DEVICE_MANIFEST := true
 
-# Architecture
+# -------------------- 处理器架构 --------------------
 TARGET_ARCH := arm64
 TARGET_ARCH_VARIANT := armv8-a
 TARGET_CPU_ABI := arm64-v8a
@@ -26,37 +31,32 @@ TARGET_2ND_CPU_ABI2 := armeabi
 TARGET_2ND_CPU_VARIANT := generic
 TARGET_2ND_CPU_VARIANT_RUNTIME := cortex-a75
 
-# Power
+# 电源与调度
 ENABLE_CPUSETS := true
 ENABLE_SCHEDBOOST := true
 
-# Bootloader
+# Bootloader & SoC
 PRODUCT_PLATFORM := kona
 TARGET_BOOTLOADER_BOARD_NAME := kona
 TARGET_NO_BOOTLOADER := true
 TARGET_USES_UEFI := true
-
-# Platform
 TARGET_BOARD_PLATFORM := kona
 TARGET_BOARD_PLATFORM_GPU := qcom-adreno650
 QCOM_BOARD_PLATFORMS += kona
 
-# Kernel
+# -------------------- 内核与引导配置 (Boot Header v3) --------------------
 BOARD_KERNEL_IMAGE_NAME := Image
 BOARD_BOOT_HEADER_VERSION := 3
-BOARD_KERNEL_PAGESIZE := 4096
-BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOT_HEADER_VERSION) --pagesize $(BOARD_KERNEL_PAGESIZE)
+# 注意：Header v3 不得传入 --pagesize，仅保留 header_version
+BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOT_HEADER_VERSION)
 
-# Kernel - prebuilt
 TARGET_FORCE_PREBUILT_KERNEL := true
 ifeq ($(TARGET_FORCE_PREBUILT_KERNEL),true)
 TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel
 endif
-
-# Kernel dtb
 TARGET_PREBUILT_DTB := $(DEVICE_PATH)/prebuilt/dtb
 
-# A/B & Recovery as Boot (无独立 recovery 分区)
+# -------------------- 虚拟 A/B 与动态分区 --------------------
 BOARD_USES_RECOVERY_AS_BOOT := true
 AB_OTA_UPDATER := true
 AB_OTA_PARTITIONS += \
@@ -71,29 +71,18 @@ AB_OTA_PARTITIONS += \
     vendor \
     vendor_boot
 
-# Assert
 TARGET_OTA_ASSERT_DEVICE := pipa
-
-# AVB
 BOARD_AVB_ENABLE := true
 BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flags 3
 
-# Partitions
 BOARD_BOOTIMAGE_PARTITION_SIZE := 134217728
-
-# Dynamic Partitions
 BOARD_USES_DYNAMIC_PARTITIONS := true
 BOARD_SUPER_PARTITION_SIZE := 9126805504
 BOARD_SUPER_PARTITION_GROUPS := qti_dynamic_partitions
 BOARD_QTI_DYNAMIC_PARTITIONS_SIZE := 9124708352
 BOARD_QTI_DYNAMIC_PARTITIONS_PARTITION_LIST := system product odm system_ext vendor
 
-# System as root
-BOARD_BUILD_SYSTEM_ROOT_IMAGE := false
-BOARD_ROOT_EXTRA_FOLDERS := bluetooth dsp firmware persist
-BOARD_SUPPRESS_SECURE_ERASE := true
-
-# File systems (HyperOS 采用 EROFS / F2FS)
+# -------------------- 文件系统支持 --------------------
 BOARD_HAS_LARGE_FILESYSTEM := true
 BOARD_HAS_EROFS := true
 BOARD_SYSTEMIMAGE_PARTITION_TYPE := erofs
@@ -103,15 +92,21 @@ TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_USERIMAGES_USE_F2FS := true
 TARGET_COPY_OUT_VENDOR := vendor
 
-# Display & Graphics
+# -------------------- 屏幕显示与触控 (小米平板6 专属) --------------------
 TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
 TARGET_SCREEN_DENSITY := 440
 TARGET_SCREEN_HEIGHT := 2880
 TARGET_SCREEN_WIDTH := 1800
 TW_FRAMERATE := 120
 TW_THEME := portrait_hdpi
+TW_INPUT_BLACKLIST := hbtp_vm
+TW_BRIGHTNESS_PATH := /sys/class/backlight/panel0-backlight/brightness
+TW_MAX_BRIGHTNESS := 2047
+TW_DEFAULT_BRIGHTNESS := 200
+TW_NO_SCREEN_BLANK := true
+TW_CUSTOM_CPU_TEMP_PATH := /sys/class/thermal/thermal_zone1/temp
 
-# Crypto (FBE 加密解密支持)
+# -------------------- FBE 硬件加密与安全 --------------------
 TW_INCLUDE_CRYPTO := true
 TW_INCLUDE_CRYPTO_FBE := true
 TW_INCLUDE_FBE_METADATA_DECRYPT := true
@@ -123,7 +118,7 @@ PLATFORM_SECURITY_PATCH := 2099-12-31
 VENDOR_SECURITY_PATCH := $(PLATFORM_SECURITY_PATCH)
 BOOT_SECURITY_PATCH := $(PLATFORM_SECURITY_PATCH)
 
-# Tools & Fastbootd
+# -------------------- 工具与 Recovery 核心设定 --------------------
 TW_INCLUDE_REPACKTOOLS := true
 TW_INCLUDE_RESETPROP := true
 TW_INCLUDE_LIBRESETPROP := true
@@ -131,7 +126,6 @@ TW_INCLUDE_LPDUMP := true
 TW_INCLUDE_LPTOOLS := true
 TW_INCLUDE_FASTBOOTD := true
 
-# Recovery Configuration
 ifeq ($(TW_DEVICE_VERSION),)
 TW_DEVICE_VERSION := 16.0
 endif
@@ -143,22 +137,14 @@ TW_EXTRA_LANGUAGES := true
 TW_INCLUDE_NTFS_3G := true
 TARGET_USES_MKE2FS := true
 TW_USE_TOOLBOX := true
-TW_INPUT_BLACKLIST := hbtp_vm
-TW_BRIGHTNESS_PATH := /sys/class/backlight/panel0-backlight/brightness
-TW_MAX_BRIGHTNESS := 2047
-TW_DEFAULT_BRIGHTNESS := 200
-TW_NO_SCREEN_BLANK := true
 TW_EXCLUDE_APEX := true
-TW_CUSTOM_CPU_TEMP_PATH := /sys/class/thermal/thermal_zone1/temp
 TW_BATTERY_SYSFS_WAIT_SECONDS := 5
 TW_BACKUP_EXCLUSIONS := /data/adb/ap,/data/adb/ksu
 
-# Debug
+# 平板无马达
+TW_NO_HAPTICS := true
+TW_USE_SERIALNO_PROPERTY_FOR_DEVICE_ID := true
+
+# 调试参数
 TWRP_INCLUDE_LOGCAT := true
 TARGET_USES_LOGD := true
-
-# Haptics (平板无震动马达，显式关闭)
-TW_NO_HAPTICS := true
-
-# Serialno
-TW_USE_SERIALNO_PROPERTY_FOR_DEVICE_ID := true
