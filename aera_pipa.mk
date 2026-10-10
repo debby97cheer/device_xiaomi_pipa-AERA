@@ -1,11 +1,13 @@
-# 继承基础 Recovery 内存盘与 AERA 构建规则
+# 1. 继承基础恢复系统 Ramdisk
 $(call inherit-product, $(SRC_TARGET_DIR)/product/generic_ramdisk.mk)
-$(call inherit-product, vendor/recovery/config/common.mk)
 
-# 继承基础设备属性定义
+# 2. 继承 Recovery 核心编译配置（指向 vendor/twrp）
+$(call inherit-product, vendor/twrp/config/common.mk)
+
+# 3. 继承设备专属属性
 $(call inherit-product, device/xiaomi/pipa/device.mk)
 
-# 设备规格定义
+# 4. 设备定义
 PRODUCT_DEVICE := pipa
 PRODUCT_NAME := aera_pipa
 PRODUCT_BRAND := Xiaomi
